@@ -45,7 +45,7 @@ namespace FaceTutorial
         private async void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
             // Load faceList to the cloud
-            //await WriteFaceList();
+            // await WriteFaceList();
 
             // Get the image file to scan from the user.
             var openDlg = new Microsoft.Win32.OpenFileDialog();
@@ -127,7 +127,7 @@ namespace FaceTutorial
                 FacePhoto.Source = faceWithRectBitmap;
 
                 // Set the status bar text.
-                faceDescriptionStatusBar.Text = "Place the mouse pointer over a face to see the face description.";
+                //faceDescriptionStatusBar.Text = "Place the mouse pointer over a face to see the face description.";
             }
         }
 
@@ -149,7 +149,7 @@ namespace FaceTutorial
             var scale = FacePhoto.ActualWidth / (bitmapSource.PixelWidth / resizeFactor);
 
             // Check if this mouse position is over a face rectangle.
-            bool mouseOverFace = false;
+            //bool mouseOverFace = false;
 
             for (int i = 0; i < faces.Length; ++i)
             {
@@ -162,15 +162,15 @@ namespace FaceTutorial
                 // Display the face description for this face if the mouse is over this face rectangle.
                 if (mouseXY.X >= left && mouseXY.X <= left + width && mouseXY.Y >= top && mouseXY.Y <= top + height)
                 {
-                    faceDescriptionStatusBar.Text = faceDescriptions[i];
-                    mouseOverFace = true;
+                    //faceDescriptionStatusBar.Text = faceDescriptions[i];
+                    //mouseOverFace = true;
                     break;
                 }
             }
 
             // If the mouse is not over a face rectangle.
-            if (!mouseOverFace)
-                faceDescriptionStatusBar.Text = "Place the mouse pointer over a face to see the face description.";
+            //if (!mouseOverFace)
+                //faceDescriptionStatusBar.Text = "Place the mouse pointer over a face to see the face description.";
         }
 
         // Uploads the image file and calls Detect Faces.
@@ -268,7 +268,16 @@ namespace FaceTutorial
             };
 
             faceDict.Add("Diego", diegoList);
-            
+
+            string[] treyList = new string[]
+            {
+                "https://scontent-sea1-1.xx.fbcdn.net/v/t1.0-9/10881643_851978501544396_603724560499557519_n.jpg?oh=d34465894d779cf26ea30bf4c585bc0b&oe=5A36385C",
+                "https://scontent-sea1-1.xx.fbcdn.net/v/t1.0-9/12495168_1049133575162220_7291081008360702154_n.jpg?oh=77d082e74a06ba49c6536f43e147dea5&oe=59F81055",
+                "https://scontent-sea1-1.xx.fbcdn.net/v/t1.0-9/13322034_1130873733654870_1534996629517703179_n.jpg?oh=b78c424e8c44ac55e031b12455f8d9d3&oe=5A02397D"
+            };
+
+            faceDict.Add("Trey", treyList);
+
             // For each person, upload their faceList to the cloud and write their name and their faceList ID to a file for later reference
             foreach (KeyValuePair<string, string[]> person in faceDict)
             {
@@ -282,17 +291,10 @@ namespace FaceTutorial
                 }
 
                 string faceListIdTxt = person.Key + "|" + faceListId;
-
-                if (!File.Exists(textFilePath))
+                
+                using (StreamWriter sw = File.AppendText(textFilePath))
                 {
-                    using (StreamWriter sw = File.CreateText(textFilePath))
-                    {
-                        File.WriteAllText(textFilePath, faceListIdTxt);
-                    }
-                }
-                else
-                {
-                    File.WriteAllText(textFilePath, faceListIdTxt);
+                    sw.WriteLine(faceListIdTxt);
                 }
             }
         }
@@ -317,6 +319,9 @@ namespace FaceTutorial
 
         private async Task GetSimilarFaces(Face face, Dictionary<string, string> faceDict)
         {
+            double maxConfidence = 0;
+            string maxPerson = "";
+
             foreach (KeyValuePair<string, string> person in faceDict)
             {
                 // Compare each face against a faceList to see if it corresponds to this person
@@ -330,7 +335,22 @@ namespace FaceTutorial
                 }
 
                 double confidenceAvg = confidenceTotal / similarFaceIds.Length;
+                if (confidenceAvg > maxConfidence)
+                {
+                    maxConfidence = confidenceAvg;
+                    maxPerson = person.Key;
+                }
+
                 Console.Write("Confidence {0} --- Person: {1}", confidenceAvg, person.Key);
+            }
+
+            if (maxConfidence >= 0.5)
+            {
+                faceDescriptionStatusBar.Text = "Is this " + maxPerson + "? Confidence level: " + maxConfidence.ToString();
+            }
+            else
+            {
+                faceDescriptionStatusBar.Text = "idk who this is";
             }
         }
     }
