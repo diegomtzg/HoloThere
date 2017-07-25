@@ -25,6 +25,9 @@ namespace FaceTutorial
         //
         // NOTE: Free trial subscription keys are generated in the westcentralus region, so if you are using
         // a free trial subscription key, you should not need to change this region.
+
+        private string textFile = @"C:\Users\t-saji\Documents\HoloThere\FaceLists.txt";
+
         private readonly IFaceServiceClient faceServiceClient =
             new FaceServiceClient("18fd70f226404a5faaa15f1541d5b94f", "https://westcentralus.api.cognitive.microsoft.com/face/v1.0");
 
@@ -40,6 +43,8 @@ namespace FaceTutorial
         // Displays the image and calls Detect Faces.
         private async void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
+            Dictionary<string, string> faceLists = GetFaceDict();
+
             // Get the image file to scan from the user.
             var openDlg = new Microsoft.Win32.OpenFileDialog();
 
@@ -96,9 +101,11 @@ namespace FaceTutorial
                             face.FaceRectangle.Height * resizeFactor
                             )
                     );
-
+                    
                     // Store the face description.
                     faceDescriptions[i] = FaceDescription(face);
+
+                    await this.GetSimilarFaces();
                 }
 
                 drawingContext.Close();
@@ -241,6 +248,59 @@ namespace FaceTutorial
 
             // Return the built string.
             return sb.ToString();
+        }
+
+        private async Task LoadFaceList()
+        {
+            Dictionary<string, string[]> faceDict = new Dictionary<string, string[]>();
+
+            string[] diegoList = new string[]
+            {
+                "https://scontent-dft4-1.xx.fbcdn.net/v/t31.0-8/13502878_10154437811366162_7488307966184526219_o.jpg?oh=7d097e08112ee7abae30225130ab71d1&oe=59F2FC2F",
+                "https://scontent-dft4-1.xx.fbcdn.net/v/t1.0-9/13516363_10154453750726162_3133429171807587927_n.jpg?oh=c6a02666c1686016d7f40663e2872124&oe=5A01B945",
+                "https://scontent-dft4-1.xx.fbcdn.net/v/t1.0-9/18527595_10212987359224548_5875913060566074611_n.jpg?oh=27fdb22488862553c8812d5f318335ef&oe=5A039F04",
+                "https://scontent-dft4-1.xx.fbcdn.net/v/t31.0-8/20157777_10155782622261162_5557152701187816603_o.jpg?oh=63ba3dcd789a5e373c4c439fa337ac8e&oe=59ECB619"
+            };
+
+            faceDict.Add("Diego", diegoList);
+            
+            foreach (KeyValuePair<string, string[]> person in faceDict)
+            {
+                string faceListId = new Guid().ToString();
+                await faceServiceClient.CreateFaceListAsync(faceListId, person.Key);
+                string[] imageUrls = person.Value;
+                for (int i = 0; i < imageUrls.Length; i++)
+                {
+                    await faceServiceClient.AddFaceToFaceListAsync(faceListId, imageUrls[i]);
+                }
+
+                string faceListIdTxt = person.Key + "|" + faceListId;
+                System.IO.File.WriteAllText(textFile, faceListIdTxt);
+            }
+        }
+
+        private Dictionary<string, string> GetFaceDict()
+        {
+            Dictionary<string, string> faceDict = new Dictionary<string, string>();
+            string line;
+            System.IO.StreamReader file = new System.IO.StreamReader(textFile);
+            while ((line = file.ReadLine()) != null)
+            {
+                string[] faceInfo = line.Split('|');
+                faceDict.Add(faceInfo[0], faceInfo[1]);
+            }
+
+            file.Close();
+            return faceDict;
+        }
+
+        private async Task GetSimilarFaces(Face face, Dictionary<string, string> faceDict)
+        {
+            foreach (KeyValuePair<string, string> person in faceDict)
+            {
+                SimilarPersistedFace[] similarFaceIds = await faceServiceClient.FindSimilarAsync(face.FaceId, person.Value);
+                // get average of similar faces and detect which face it is based on confidence level threshold
+            }
         }
     }
 }
