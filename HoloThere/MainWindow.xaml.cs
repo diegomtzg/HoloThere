@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -110,7 +111,14 @@ namespace FaceTutorial
                     faceDescriptions[i] = FaceDescription(face);
                     
                     // For each face, get similar faces to try and come up with that person's name
-                    await this.GetSimilarFaces(face, faceDict);
+                    string person = await this.GetSimilarFaces(face, faceDict);
+                    if (person != null)
+                    {
+                        drawingContext.DrawText(new FormattedText(person, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+                            new Typeface("Helvetica"), 100.0, new SolidColorBrush(Color.FromRgb(0, 0, 0))),
+                            new Point(face.FaceRectangle.Left * resizeFactor,
+                            face.FaceRectangle.Top * resizeFactor));
+                    }
                 }
 
                 drawingContext.Close();
@@ -317,7 +325,7 @@ namespace FaceTutorial
             return faceDict;
         }
 
-        private async Task GetSimilarFaces(Face face, Dictionary<string, string> faceDict)
+        private async Task<string> GetSimilarFaces(Face face, Dictionary<string, string> faceDict)
         {
             double maxConfidence = 0;
             string maxPerson = "";
@@ -346,11 +354,11 @@ namespace FaceTutorial
 
             if (maxConfidence >= 0.5)
             {
-                faceDescriptionStatusBar.Text = "Is this " + maxPerson + "? Confidence level: " + maxConfidence.ToString();
+                return maxPerson;
             }
             else
             {
-                faceDescriptionStatusBar.Text = "idk who this is";
+                return null;
             }
         }
     }
