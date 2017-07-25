@@ -26,7 +26,8 @@ namespace FaceTutorial
         // NOTE: Free trial subscription keys are generated in the westcentralus region, so if you are using
         // a free trial subscription key, you should not need to change this region.
 
-        private string textFilePath = @"C:\Users\t-dima\Documents\Visual Studio 2017\Projects\HoloThere\FaceLists.txt";
+        //private string textFilePath = @"C:\Users\t-dima\Documents\Visual Studio 2017\Projects\HoloThere\FaceLists.txt";
+        private string textFilePath = @"C:\Users\t-saji\Documents\HoloThere\FaceLists.txt";
 
         private readonly IFaceServiceClient faceServiceClient =
             new FaceServiceClient("18fd70f226404a5faaa15f1541d5b94f", "https://westcentralus.api.cognitive.microsoft.com/face/v1.0");
@@ -43,9 +44,12 @@ namespace FaceTutorial
         // Displays the image and calls Detect Faces.
         private async void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
+            // Load faceList to the cloud
+            //await WriteFaceList();
+
             // Get the image file to scan from the user.
             var openDlg = new Microsoft.Win32.OpenFileDialog();
-
+            
             openDlg.Filter = "JPEG Image(*.jpg)|*.jpg";
             bool? result = openDlg.ShowDialog(this);
 
@@ -84,6 +88,8 @@ namespace FaceTutorial
                 resizeFactor = 96 / dpi;
                 faceDescriptions = new String[faces.Length];
 
+                Dictionary<string, string> faceDict = GetFaceDict();
+
                 for (int i = 0; i < faces.Length; ++i)
                 {
                     Face face = faces[i];
@@ -102,12 +108,9 @@ namespace FaceTutorial
                     
                     // Store the face description.
                     faceDescriptions[i] = FaceDescription(face);
-
-                    // Load faceList to the cloud
-                    await LoadFaceList();
-
+                    
                     // For each face, get similar faces to try and come up with that person's name
-                    await this.GetSimilarFaces(face, GetFaceDict());
+                    await this.GetSimilarFaces(face, faceDict);
                 }
 
                 drawingContext.Close();
@@ -252,7 +255,7 @@ namespace FaceTutorial
             return sb.ToString();
         }
 
-        private async Task LoadFaceList()
+        private async Task WriteFaceList()
         {
             Dictionary<string, string[]> faceDict = new Dictionary<string, string[]>();
 
@@ -269,7 +272,7 @@ namespace FaceTutorial
             // For each person, upload their faceList to the cloud and write their name and their faceList ID to a file for later reference
             foreach (KeyValuePair<string, string[]> person in faceDict)
             {
-                string faceListId = new Guid().ToString();
+                string faceListId = Guid.NewGuid().ToString();
                 await faceServiceClient.CreateFaceListAsync(faceListId, person.Key);
 
                 string[] imageUrls = person.Value;
@@ -286,6 +289,10 @@ namespace FaceTutorial
                     {
                         File.WriteAllText(textFilePath, faceListIdTxt);
                     }
+                }
+                else
+                {
+                    File.WriteAllText(textFilePath, faceListIdTxt);
                 }
             }
         }
@@ -313,7 +320,7 @@ namespace FaceTutorial
             foreach (KeyValuePair<string, string> person in faceDict)
             {
                 // Compare each face against a faceList to see if it corresponds to this person
-                SimilarPersistedFace[] similarFaceIds = await faceServiceClient.FindSimilarAsync(face.FaceId, person.Value);
+                SimilarPersistedFace[] similarFaceIds = await faceServiceClient.FindSimilarAsync(face.FaceId, person.Value, FindSimilarMatchMode.matchFace);
 
                 // Get average of confidence levels from each face in the faceList to get better face detection accuracy
                 double confidenceTotal = 0;
@@ -323,7 +330,7 @@ namespace FaceTutorial
                 }
 
                 double confidenceAvg = confidenceTotal / similarFaceIds.Length;
-                Console.Write("Confidence {0} --- Person: {1}", confidenceTotal, person.Key);
+                Console.Write("Confidence {0} --- Person: {1}", confidenceAvg, person.Key);
             }
         }
     }
