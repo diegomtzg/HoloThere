@@ -27,8 +27,7 @@ namespace FaceTutorial
         // NOTE: Free trial subscription keys are generated in the westcentralus region, so if you are using
         // a free trial subscription key, you should not need to change this region.
 
-        //private string textFilePath = @"C:\Users\t-dima\Documents\Visual Studio 2017\Projects\HoloThere\FaceLists.txt";
-        private string textFilePath = @"C:\Users\t-saji\Documents\HoloThere\FaceLists.txt";
+        private string textFilePath = @"C:\FaceLists.txt";
 
         private readonly IFaceServiceClient faceServiceClient =
             new FaceServiceClient("18fd70f226404a5faaa15f1541d5b94f", "https://westcentralus.api.cognitive.microsoft.com/face/v1.0");
@@ -45,7 +44,7 @@ namespace FaceTutorial
         // Displays the image and calls Detect Faces.
         private async void BrowseButton_Click(object sender, RoutedEventArgs e)
         {
-            // Load faceList to the cloud
+            // Load faceList to the cloud, done only once since we already have the FaceList IDs saved to our text file
             // await WriteFaceList();
 
             // Get the image file to scan from the user.
@@ -140,7 +139,6 @@ namespace FaceTutorial
         }
 
         // Displays the face description when the mouse is over a face rectangle.
-
         private void FacePhoto_MouseMove(object sender, MouseEventArgs e)
         {
             // If the REST call has not completed, return from this method.
@@ -350,6 +348,7 @@ namespace FaceTutorial
                 }
 
                 Console.Write("Confidence {0} --- Person: {1}", confidenceAvg, person.Key);
+                Console.WriteLine();
             }
 
             if (maxConfidence >= 0.5)
